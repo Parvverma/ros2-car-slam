@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="room">
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+
+    <physics type="ode">
+      <max_step_size>0.003</max_step_size>
+      <real_time_update_rate>333</real_time_update_rate>
+    </physics>
+
+    <model name="room">
+      <static>true</static>
+      <link name="link">
+        <!-- outer walls -->
+        <collision name="n"><pose>0 4 0.5 0 0 0</pose><geometry><box><size>8.2 0.2 1</size></box></geometry></collision>
+        <visual name="n"><pose>0 4 0.5 0 0 0</pose><geometry><box><size>8.2 0.2 1</size></box></geometry></visual>
+        <collision name="s"><pose>0 -4 0.5 0 0 0</pose><geometry><box><size>8.2 0.2 1</size></box></geometry></collision>
+        <visual name="s"><pose>0 -4 0.5 0 0 0</pose><geometry><box><size>8.2 0.2 1</size></box></geometry></visual>
+        <collision name="e"><pose>4 0 0.5 0 0 0</pose><geometry><box><size>0.2 8.2 1</size></box></geometry></collision>
+        <visual name="e"><pose>4 0 0.5 0 0 0</pose><geometry><box><size>0.2 8.2 1</size></box></geometry></visual>
+        <collision name="w"><pose>-4 0 0.5 0 0 0</pose><geometry><box><size>0.2 8.2 1</size></box></geometry></collision>
+        <visual name="w"><pose>-4 0 0.5 0 0 0</pose><geometry><box><size>0.2 8.2 1</size></box></geometry></visual>
+        <!-- inner wall -->
+        <collision name="i"><pose>0 1.5 0.5 0 0 0</pose><geometry><box><size>0.2 3 1</size></box></geometry></collision>
+        <visual name="i"><pose>0 1.5 0.5 0 0 0</pose><geometry><box><size>0.2 3 1</size></box></geometry></visual>
+        <!-- box obstacle -->
+        <collision name="b"><pose>2 -1.5 0.5 0 0 0.4</pose><geometry><box><size>1 1 1</size></box></geometry></collision>
+        <visual name="b"><pose>2 -1.5 0.5 0 0 0.4</pose><geometry><box><size>1 1 1</size></box></geometry></visual>
+        <!-- cylinder obstacle -->
+        <collision name="cy"><pose>-2 -1.5 0.5 0 0 0</pose><geometry><cylinder><radius>0.4</radius><length>1</length></cylinder></geometry></collision>
+        <visual name="cy"><pose>-2 -1.5 0.5 0 0 0</pose><geometry><cylinder><radius>0.4</radius><length>1</length></cylinder></geometry></visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

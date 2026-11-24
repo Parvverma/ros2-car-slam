@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<robot name="my_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ===== Parameters ===== -->
+  <xacro:property name="chassis_l" value="0.30"/>
+  <xacro:property name="chassis_w" value="0.20"/>
+  <xacro:property name="chassis_h" value="0.08"/>
+  <xacro:property name="chassis_m" value="4.0"/>
+  <xacro:property name="wheel_r" value="0.05"/>
+  <xacro:property name="wheel_w" value="0.04"/>
+  <xacro:property name="wheel_m" value="0.4"/>
+  <xacro:property name="wheel_x" value="0.10"/>
+  <xacro:property name="wheel_y" value="0.13"/>
+
+  <material name="grey"><color rgba="0.6 0.6 0.6 1"/></material>
+  <material name="black"><color rgba="0.1 0.1 0.1 1"/></material>
+  <material name="red"><color rgba="0.8 0.1 0.1 1"/></material>
+
+  <!-- ===== Base ===== -->
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 ${wheel_r}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.02"/>
+      <geometry><box size="${chassis_l} ${chassis_w} ${chassis_h}"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.02"/>
+      <geometry><box size="${chassis_l} ${chassis_w} ${chassis_h}"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0.02"/>
+      <mass value="${chassis_m}"/>
+      <inertia ixx="${chassis_m/12*(chassis_w**2+chassis_h**2)}" ixy="0" ixz="0"
+               iyy="${chassis_m/12*(chassis_l**2+chassis_h**2)}" iyz="0"
+               izz="${chassis_m/12*(chassis_l**2+chassis_w**2)}"/>
+    </inertial>
+  </link>
+
+  <!-- ===== Wheel macro (called 4 times) ===== -->
+  <xacro:macro name="wheel" params="name x y">
+    <link name="${name}_wheel_link">
+      <visual>
+        <geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="${wheel_m}"/>
+        <inertia ixx="${wheel_m/12*(3*wheel_r**2+wheel_w**2)}" ixy="0" ixz="0"
+                 iyy="${wheel_m/12*(3*wheel_r**2+wheel_w**2)}" iyz="0"
+                 izz="${wheel_m*wheel_r**2/2}"/>
+      </inertial>
+    </link>
+    <!-- rpy rotates the cylinder so its axis (z) points along robot Y -->
+    <joint name="${name}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${name}_wheel_link"/>
+      <origin xyz="${x} ${y} 0" rpy="${-pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <gazebo reference="${name}_wheel_link">
+        <mu1>0.5</mu1>
+        <mu2>0.5</mu2>
+        <kp>500000.0</kp>
+        <kd>10.0</kd>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:wheel name="front_left"  x="${wheel_x}"  y="${wheel_y}"/>
+  <xacro:wheel name="front_right" x="${wheel_x}"  y="${-wheel_y}"/>
+  <xacro:wheel name="rear_left"   x="${-wheel_x}" y="${wheel_y}"/>
+  <xacro:wheel name="rear_right"  x="${-wheel_x}" y="${-wheel_y}"/>
+
+  <!-- ===== LiDAR ===== -->
+  <link name="lidar_link">
+    <visual>
+      <geometry><cylinder radius="0.035" length="0.04"/></geometry>
+      <material name="red"/>
+    </visual>
+    <collision>
+      <geometry><cylinder radius="0.035" length="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.15"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+  </link>
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="0.05 0 0.08"/>
+  </joint>
+
+  <gazebo reference="lidar_link">
+    <sensor name="lidar" type="ray">
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+        <update_rate>10</update_rate>
+        <ray>
+        <scan>
+            <horizontal>
+            <samples>360</samples>
+            <resolution>1.0</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+            </horizontal>
+        </scan>
+        <range>
+            <min>0.15</min>
+            <max>12.0</max>
+            <resolution>0.01</resolution>
+        </range>
+        <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+        </noise>
+        </ray>
+        <plugin name="lidar_plugin" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+            <remapping>~/out:=scan</remapping>
+        </ros>
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>lidar_link</frame_name>
+        </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ===== IMU ===== -->
+  <link name="imu_link">
+        <inertial>
+            <mass value="0.01"/>
+            <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+        </inertial>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0.04"/>
+  </joint>
+
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+        <always_on>true</always_on>
+        <update_rate>100</update_rate>
+        <imu>
+            <angular_velocity>
+                <x><noise type="gaussian"><mean>0.0</mean><stddev>0.002</stddev></noise></x>
+                <y><noise type="gaussian"><mean>0.0</mean><stddev>0.002</stddev></noise></y>
+                <z><noise type="gaussian"><mean>0.0</mean><stddev>0.002</stddev></noise></z>
+            </angular_velocity>
+            <linear_acceleration>
+                <x><noise type="gaussian"><mean>0.0</mean><stddev>0.02</stddev></noise></x>
+                <y><noise type="gaussian"><mean>0.0</mean><stddev>0.02</stddev></noise></y>
+                <z><noise type="gaussian"><mean>0.0</mean><stddev>0.02</stddev></noise></z>
+            </linear_acceleration>
+        </imu>
+        <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+            <remapping>~/out:=imu</remapping>
+        </ros>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        <frame_name>imu_link</frame_name>
+        </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ===== Gazebo plugins (the robot's "brain" inside the simulator) ===== -->
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+        <update_rate>50</update_rate>
+
+        <!-- NEW: tells the plugin there are 2 wheel pairs (front + rear) -->
+        <num_wheel_pairs>2</num_wheel_pairs>
+
+        <!-- pair 1 = front, pair 2 = rear. Left and right lists must be in the same order -->
+        <left_joint>front_left_wheel_joint</left_joint>
+        <right_joint>front_right_wheel_joint</right_joint>
+        <left_joint>rear_left_wheel_joint</left_joint>
+        <right_joint>rear_right_wheel_joint</right_joint>
+
+        <!-- one value per pair, so each appears twice -->
+        <wheel_separation>0.26</wheel_separation>
+        <wheel_separation>0.26</wheel_separation>
+        <wheel_diameter>0.10</wheel_diameter>
+        <wheel_diameter>0.10</wheel_diameter>
+
+        <max_wheel_torque>20</max_wheel_torque>
+        <max_wheel_acceleration>5.0</max_wheel_acceleration>
+
+        <publish_odom>true</publish_odom>
+        <publish_odom_tf>false</publish_odom_tf>
+        <publish_wheel_tf>false</publish_wheel_tf>
+        <odometry_source>0</odometry_source>
+        <odometry_frame>odom</odometry_frame>
+        <robot_base_frame>base_footprint</robot_base_frame>
+
+        <ros>
+            <remapping>cmd_vel:=cmd_vel</remapping>
+            <remapping>odom:=wheel/odom</remapping>
+        </ros>
+    </plugin>
+
+    <plugin name="joint_states" filename="libgazebo_ros_joint_state_publisher.so">
+        <ros>
+            <remapping>~/out:=joint_states</remapping>
+        </ros>
+        <update_rate>30</update_rate>
+        <joint_name>front_left_wheel_joint</joint_name>
+        <joint_name>front_right_wheel_joint</joint_name>
+        <joint_name>rear_left_wheel_joint</joint_name>
+        <joint_name>rear_right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+</robot>
